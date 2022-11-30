@@ -480,7 +480,7 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
 
         simul_time = 0
         for a in list_angle:    
-            print(f"\r{a*180/pi:.2f}°", end="")
+            if self.verbose >= 2: print(f"\r{a*180/pi:.2f}°", end="")
             angles = [113*pi/180+a, -140*pi/180-a]
             p.setJointMotorControlArray
             p.setJointMotorControlArray(bodyIndex=self.robot_id,
@@ -501,7 +501,7 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
             simul_time = self.nb_step*self.dt
             # observe (sets the attribute self.state):
             state = self.updateState().tolist()
-            print(state)
+            #print(state)
             data = [simul_time] + [sub_step] + state + [a] + angles
             States.append(data)
             time.sleep(self.dt)
