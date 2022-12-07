@@ -15,3 +15,5 @@ notebook==6.4.12
 pip==21.2.4
 PyYAML==6.0
 pyzmq==24.0.1
+tensorboard=2.11.0
+

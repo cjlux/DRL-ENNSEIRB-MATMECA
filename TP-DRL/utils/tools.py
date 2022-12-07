@@ -1,7 +1,7 @@
 ###########################################################################
 # Copyright 2022 Jean-Luc CHARLES
 # Created: 2022-07-29
-# version: 1.0 
+# version: 1.1 - 7 Dec 2022 
 # License: GNU GPL-3.0-or-later
 ###########################################################################
 
@@ -64,7 +64,7 @@ def move_to(botId: int,
             joints: tuple, 
             target: tuple, 
             verbose: int = 0, 
-            wait="Press ENTER to see the robot in the target position"):
+            wait="Press ENTER for next position"):
     '''
     Use the PyBullet simulator to move the robot arms: the target position is given  
     by the two angles (q1,q2) [rad]
@@ -72,7 +72,7 @@ def move_to(botId: int,
     Parameters:
       botId: int:    the id of the robot
       joints: tuple: the list of the joint indexes to control
-      targets:tuple: the list of the angle targets to reach
+      target:tuple:  the list of the angle targets to reach
       verbose: int:  optional, used to tune the function verbosity (0: no display)
       wait: str:     optional; if not empty, the function will wait for a user input after moving the joints.
        
@@ -150,7 +150,7 @@ def display_link_properties(botId:int):
             print(f"\t{key:30s}:{value}")
         print()
 
-def test_training(model, 
+def test_training(agent, 
                   env, 
                   DT:float, 
                   pts, 
@@ -158,7 +158,7 @@ def test_training(model,
                   epsilon=1e-3, 
                   nSubSteps=50):
     '''
-    model: the trained network
+    agent: the trained network
     env: the robot
     DT:  the time step for the Pybullet simulation
     pts: the array of points that make the trajectory
@@ -181,7 +181,7 @@ def test_training(model,
 
     done, step_count, rewards, actions = False, 0, [], []
     while step_count < 5*max_steps_nb:
-        action, _ = model.predict(obs, deterministic=True)
+        action, _ = agent.predict(obs, deterministic=True)
         obs, reward, done, info = env.step(action)
         step_count += 1
         if done: break
@@ -192,19 +192,19 @@ def test_training(model,
         env.set_target_position(target_pos)
         done, step_count, rewards, actions = False, 0, [], []
         while step_count < max_steps_nb:
-            action, _ = model.predict(obs, deterministic=True)
-            obs, reward, done, info = env.step(action)
-            rewards.append(float(reward))
-            actions.append(action)
-            dist_effect_target = norm(np.array(env.effector_pos) - target_pos)
-            error.append(dist_effect_target)
+            if not done:
+                action, _ = agent.predict(obs, deterministic=True)
+                obs, reward, done, info = env.step(action)
+                rewards.append(float(reward))
+                actions.append(action)
+                dist_effect_target = norm(np.array(env.effector_pos) - target_pos)
+                error.append(dist_effect_target)
+            else:
+                time.sleep(env.dt)
             step_count += 1
-            if done: 
-                print(f"{step_count}, ", end="")
-                break
 
     error = np.array(error)
-    print(f"\ne_av: {error.mean():.4f}, e_std:{error.std():.4f}, abs(e)_max: {max(abs(error)):.4f}")
+    print(f"\ne_av: {100*error.mean():.2f} cm, e_std:{100*error.std():.2f} cm, abs(e)_max: {100*max(abs(error)):.2f} cm")
     
     return error
 

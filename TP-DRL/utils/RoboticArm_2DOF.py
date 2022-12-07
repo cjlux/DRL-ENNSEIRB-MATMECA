@@ -1,7 +1,7 @@
 ###########################################################################
 # Copyright 2022 Jean-Luc CHARLES
 # Created: 2022-07-29
-# version: 1.0 
+# version: 1.1 - 7 Dec 2022 
 # License: GNU GPL-3.0-or-later
 ###########################################################################
 
@@ -13,11 +13,13 @@ import time, sys
 import pybullet as p
 import pybullet_data
 
-from utils.tools import is_close_to, move_to, display_joint_properties, welcome, plot_test
+from utils.tools import is_close_to,  welcome, plot_test
 import rewards 
 
 class RoboticArm_2DOF_PyBullet(gym.Env):
-    '''To simulate a 2 DOF robotic arm using the Pybullet simulator.'''
+    '''
+    To simulate a 2 DOF robotic arm using the Pybullet simulator.
+    '''
     
     def __init__(self,
                  robot_urdf: str, 
@@ -45,7 +47,7 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
             init_robot_angles: initial values of the angles  q1 & q2 of the robot  
             init_target_pos: the initial position (x,y,z) of the target to reach. Random 
                              perurbations can be added (see the 'reset' method).
-            reward:          name of the reward function to use as a method in the class.
+            reward:          name of the reward function to use as a class method.
             clip_action:     whether to clip 'action' given by the neural network to keep its 
                              value in the 'action space' interval.
             max_episode_steps: int the max number of steps per episode (a.k.a the episode horizon).
@@ -122,15 +124,17 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
         self.ee_pos  = []      # to store all the end effector pos during the training
         
     def seed(self, seed):
-        ''' Creates the random generator initialized with the seed
-            for reproductable random sequences.
+        ''' 
+        Creates the random generator initialized with the seed
+        for reproductable random sequences.
         '''
         super().seed(seed)
         self.rng = np.random.default_rng(seed=seed)
         self.seed_value = seed
             
     def pybullet(self, headless):
-        '''Run the pybullet simulation process.
+        '''
+        Run the pybullet simulation process.
         '''
         mode = p.DIRECT if headless else p.GUI 
         self.pc_id = p.connect(mode)              # or p.DIRECT for non-graphical version
@@ -139,21 +143,21 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
             welcome()
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         
-        
     def set_action_space(self):
-        '''Define the Gym action space: 
-           - continuous in [-1,1] for motor1 driving q1, 
-           - continuous in [-1,1] for motor2 driving q2.
+        '''
+        Define the Gym action space: 
+        - continuous in [-1,1] for motor1 driving q1, 
+        - continuous in [-1,1] for motor2 driving q2.
         '''
         self.action_space = gym.spaces.Box(np.array([self.min_action, self.min_action]),
                                            np.array([self.max_action, self.max_action]))
         
     def set_observation_space(self):
-        '''Define the observation space. 
-           The robot state vector is:
-           (q1, q1_dot, q2, q2_dot, x_tg, z_tg, x_ee, z_ee) where
-           - (x_tg, z_tg) is the target position
-           - (x_ee, z_ee) is the robot end effector position.
+        '''
+        Define the observation space. The robot state vector is:
+        (q1, q1_dot, q2, q2_dot, x_tg, z_tg, x_ee, z_ee) where
+        - (x_tg, z_tg) is the target position
+        - (x_ee, z_ee) is the robot end effector position.
         '''
         fmax = np.finfo(np.float32).max
         fmin = - fmax
@@ -197,7 +201,9 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
         return np.array(self.state).astype('float32')
     
     def compute_done_reward(self, action):
-            
+        '''
+        Compute the value of the reward and the 'done' boolean.
+        '''
         q1, q1_dot, q2, q2_dot, x_tg, z_tg, x_ee, z_ee = self.state
         
         # If the effector position is close to the target position, the episode is done:    
@@ -217,7 +223,9 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
         return done, reward
     
     def step_angle(self, actions):
-        """Apply control and run one step of simulation."""
+        '''
+        Apply actions to the environment (angles) and run one step of simulation.
+        '''
             
         try :
             assert self.action_space.contains(actions), \
@@ -250,7 +258,9 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
 
     
     def step(self, action):
-        """Apply control and run one step of simulation."""
+        '''
+        Apply actions to the environment (torques) and run one step of simulation.
+        '''
             
         try :
             assert self.action_space.contains(action), \
@@ -299,30 +309,29 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
               seed: int = None,
               return_info: bool = False,
               options: dict = None) :
-        """
+        '''
         Resets simulation and spawn every object in its initial position.
         
         Parameters:
-          seed: if not None, its value is used to reset the RNG.
-          return_info: if True, a dictionary of debug/info data is added to tthe return data.
-          options: optionnal dictionary to give:
-            'dt': to change the self.dt tim step for the PyBullet simulation
-            'robot_reset_angle_deg': the initial values for the robot q1 & q2 angles
-            'target_initial_pos': the initial target position
-            'randomize': whether to add or not random perturbation to the robot angles
+        - seed: if not None, its value is used to reset the RNG.
+        - return_info: if True, a dictionary of debug/info data is added to tthe return data.
+        - options: optionnal dictionary to give:
+            -'dt': to change the self.dt time step of the PyBullet simulation
+            -'robot_reset_angle_deg': the initial values for the robot q1 & q2 angles
+            -'target_initial_pos': the initial target position
+            -'randomize': whether to add or not random perturbation to the robot angles
                          and the traget position.     
-            'epsilon': to change the self.epsilon value.
-            'numSubSteps': to change the self.numSubSteps velue.
+            -'epsilon': to change the self.epsilon value.
+            -'numSubSteps': to change the self.numSubSteps velue.
             
-        Return: the observation (te state of the environement) and possibly a dictionary
+        Return: the observation (the environement state) and possibly a dictionary
                 of debug/info data.
-        """
+        '''
         
         if self.verbose >= 1: print(f"[RoboticArm_2DOF_PyBullet.reset] last #steps : {self.nb_step}")
     
         # reset the random generator (rng) with the fixed seed if needed:
-        if seed != None:
-            self.seed(seed)
+        if seed != None: self.seed(seed)
             
         dt = None
         epsilon = None
@@ -358,36 +367,18 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
         
         # Load the ground plane:
         self.plane_id = p.loadURDF("plane.urdf", physicsClientId=self.pc_id)
-
-        '''
-        self.actual_target_pos = np.array(target_initial_pos)
-        if randomize: 
-            while True:
-                x = np.random.uniform(-2., 2.)
-                z = np.random.uniform(0.02, 2.)
-                if x**2 + z**2 <= 4: break
-            pos = (x,0,z)
-            self.actual_target_pos = np.array(pos)
-        self.actual_target_pos[1] = 0.
-        if self.actual_target_pos[2] < 0.02 : self.actual_target_pos[2] = 0.02
-        # lord the URDF of the target (defines the 'target_id' attribute):
-        self.load_target(self.actual_target_pos)
-        self.target_pos.append(self.actual_target_pos)
-        '''
         
-        
-        # set the target position with the initial position plus a random perturbation of +/- 25 cm 
+        # set the target position with the initial position plus a random perturbation in 
         # the two directions x and z:
         self.actual_target_pos = np.array(target_initial_pos)
         if randomize: self.actual_target_pos += self.rng.uniform(-0.51, 0.51, (3,))
         self.actual_target_pos[1] = 0.
+        # z position should be gretaer then 1 cm:
         if self.actual_target_pos[2] < 0.01 : self.actual_target_pos[2] = 0.01
         # lord the URDF of the target (defines the 'target_id' attribute):
         self.load_target(self.actual_target_pos)
         self.target_pos.append(self.actual_target_pos)
-        
-        
-        
+                
         # Load the robot URDF:
         start_pos = [0, 0, 0]
         start_orn = p.getQuaternionFromEuler((0, 0, 0), physicsClientId=self.pc_id)
@@ -404,7 +395,7 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
                                     targetPositions=angles_rad,
                                     physicsClientId=self.pc_id)
         # loop to reach the position thanks to the physical engine computation
-        # quit the loop when the robot is very close to the target position
+        # quit the loop when the robot isclose to the target position
         sub_step = 0
         while(True):
             p.stepSimulation()
@@ -413,8 +404,7 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
                                             physicsClientId=self.pc_id)
             joints_pos = joints_state[0][0], joints_state[1][0]
             sub_step += 1
-            #print(sub_step, angles_rad, joints_pos)
-            if is_close_to(angles_rad, joints_pos) : break
+            if is_close_to(angles_rad, joints_pos, self.epsilon): break
         
         # update the state of the robot:    
         obs = self.updateState() 
@@ -425,16 +415,19 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
         self.ee_pos.append(obs[6:])
         
         if self.verbose >= 2:
-            print(f"[RoboticArm_2DOF_PyBullet.reset] ("
-                  f"q1:{obs[0]*180/pi:.1f}°,{obs[1]*180/pi:.1f} °/s, "
-                  f"q2:{obs[2]*180/pi:.1f}°,{obs[3]*180/pi:.1f} °/s, "
-                  f"tg:({obs[4]:.3f},{obs[5]:.3f}) m, "
-                  f"ee:({obs[6]:.3f},{obs[7]:.3f}) m), "
+            print(f"[RoboticArm_2DOF_PyBullet.reset] "
+                  f"q1:({obs[0]*180/pi:.1f}°, {obs[1]*180/pi:.1f}°/s), "
+                  f"q2:({obs[2]*180/pi:.1f}°, {obs[3]*180/pi:.1f}°/s), "
+                  f"Target:({obs[4]:.3f},{obs[5]:.3f}) m, "
+                  f"EndEff:({obs[6]:.3f},{obs[7]:.3f}) m, "
                   f"after {sub_step} substeps")                 
         
         return (obs, {}) if return_info else obs
     
     def load_target(self, pos: np.ndarray):
+        '''
+        Load the target using its URDF file.
+        '''
         
         # load the target URDF:
         start_pos = [0, 0, 0.0]
@@ -449,6 +442,11 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
                                                     physicsClientId=self.pc_id)
 
     def set_target_position(self, new_pos: np.ndarray):
+        '''
+        Move the target to a given position
+        Parameters:
+        - new_pos: the ndarray of the 3D position coordinates.
+        '''
         
         # Move the target to the desired position:
         
@@ -462,8 +460,13 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
         self.actual_target_pos = new_pos
         
         
-    def testAngleControl(self, dt:float):
-        '''Run a test by moving the robot actuator by a step angle.'''
+    def testAngleControl(self, dt:float, angle_amplitude: float=pi/5):
+        '''
+        Run a test by moving the robot motors by a given angle amplitude
+        Parameters:
+        - dt : the time step of the simulation
+        - angle_amplitude: the amplitude with which to move the two motors angle.
+        '''
 
         self.dt = dt
         
@@ -473,12 +476,12 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
         p.setPhysicsEngineParameter(numSubSteps=self.numSubSteps)
         
         print(f"[testAngleControl] Ready to run the test with timestep={self.dt:8.2e} s")
-        input("[testAngleControl] Press ENTER to launch the free run simulation...")
+        input(f"[testAngleControl] Press ENTER to launch the free run simulation...")
         
-        amplitude = pi/5
-        list_angle = amplitude*np.sin(np.linspace(0,1.,60)*2*pi)
+        list_angle = angle_amplitude*np.sin(np.linspace(0, 1., 60)*2*pi)
 
         simul_time = 0
+        
         for a in list_angle:    
             if self.verbose >= 2: print(f"\r{a*180/pi:.2f}°", end="")
             angles = [113*pi/180+a, -140*pi/180-a]
@@ -490,12 +493,13 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
                                         physicsClientId=self.pc_id)
             sub_step = 0
             while(True):
+                # make some iterations to get the robot's EndEffector close to the target position:
                 p.stepSimulation(physicsClientId=self.pc_id)
                 joints_state = p.getJointStates(self.robot_id, jointIndices=self.motor_joints, physicsClientId=self.pc_id)
                 joints_pos = joints_state[0][0], joints_state[1][0]
                 sub_step += 1
                 if sub_step > 1: print("\rsub_steps:", sub_step)
-                if is_close_to(angles, joints_pos) : break
+                if is_close_to(angles, joints_pos, self.epsilon): break
             
             self.nb_step += 1        
             simul_time = self.nb_step*self.dt
@@ -508,8 +512,13 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
             
         return np.array(States)
 
-    def testq1q2(self, dt:float):
-        '''Run a test by moving the robot actuator by a step angle.'''
+    def testq1q2(self, dt:float, q1q2_deg: list=[90, -90]):
+        '''
+        Move the robot to a position defined by the two angles q1 and q2.
+        Parameters:
+        - dt : the time step of the simulation
+        - q1q2_deg: the liste of the two angles [q1, q2] (in degrees).
+        '''
 
         self.dt = dt
         
@@ -518,13 +527,13 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
 
         p.setPhysicsEngineParameter(numSubSteps=self.numSubSteps)
         
-        print(f"[testAngleControl] Ready to run the test with timestep={self.dt:8.2e} s")
-        input("[testAngleControl] Press ENTER to launch the free run simulation...")
+        print(f"[testq1q2] Ready to run the test with timestep={self.dt*1e3:.1} ms"
+            f"This is the Robot position after reset")
+        input(f"[testq1q2] Press ENTER to move the robot to q1={q1q2_deg[0]:.1f}° and q2={q1q2_deg[1]:.1f}°...")
         
-
         simul_time = 0
-
-        angles = [pi/2, -pi/2]
+        angles = [q1q2_deg[0]*pi/180, q1q2_deg[1]*pi/180]
+        
         p.setJointMotorControlArray
         p.setJointMotorControlArray(bodyIndex=self.robot_id,
                                     jointIndices=self.motor_joints,
@@ -532,21 +541,26 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
                                     targetPositions=angles,
                                     physicsClientId=self.pc_id)
         sub_step = 0
+        
         while(True):
             p.stepSimulation(physicsClientId=self.pc_id)
             joints_state = p.getJointStates(self.robot_id, jointIndices=self.motor_joints, physicsClientId=self.pc_id)
             joints_pos = joints_state[0][0], joints_state[1][0]
             sub_step += 1
-            if sub_step > 1: print("\rsub_steps:", sub_step)
-            if is_close_to(angles, joints_pos) : break
-
+            print("\rsub_steps:", sub_step, end="")
+            if is_close_to(angles, joints_pos, self.epsilon): break
+        
         self.nb_step += 1        
-        simul_time = self.nb_step*self.dt
+        
         # observe (sets the attribute self.state):
-        state = self.updateState().tolist()
-        print(state)
-
+        state = self.updateState()
+        with np.printoptions(formatter={'float':'{:.3f}'.format}):    
+            print(f"\nrobot's state: {state}")
+            
     def close(self):
+        '''
+        To close properly the PyBullet simulator session and all what is connected to the Environment
+        '''
         try:
             p.disconnect(physicsClientId=self.pc_id)
         except:
@@ -567,12 +581,9 @@ if __name__ == '__main__':
     #data = env.testAngleControl(0.05)
     #data = data.astype(float)
     
-    env.testq1q2(1/240)
-    
+    env.testq1q2(10e-3)    
     input("press ENTER to end....")
     
-    
+    # always end with env.close() to close the simulation and all what is connected to: 
     env.close()
-    
-    plot_test(data)
     
