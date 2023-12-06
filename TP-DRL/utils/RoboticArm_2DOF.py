@@ -33,7 +33,7 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
                  limit_q2:tuple  = (-180, 180),
                  init_robot_angles:tuple = (113, -140),
                  init_target_pos:tuple = (0.50, 0, 0.52),
-                 t1_t2_conv = (4600, 2100),
+                 t1_t2_conv = (800, 400),
                  reward:str = "reward",
                  clip_action:bool = False,
                  max_episode_steps:int = 500,
@@ -84,7 +84,7 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
         self.reward_func       = reward           # the name of the reward function
         self.clip_action       = clip_action      
         self.epsilon           = epsilon
-        self.numSubSteps       = 50      # the number of sub-steps insie one pybullet simulation step.
+        self.numSubSteps       = 50      # the number of sub-steps inside one pybullet simulation step.
         self.verbose           = verbose
         
         # id for the PyBullet simulator:
@@ -99,7 +99,7 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
         self.state             = None     # the robot state
         self.actual_target_pos = None     # np.ndarray, the actual target position: initial pos + possibly random
                
-        self.cur_step           = 0        # the total number of steps done within an epiosde
+        self.cur_step          = 0        # the total number of steps done within an epiosde
                 
         self._max_episode_steps = max_episode_steps
         if verbose >=1: print(f'[RoboticArm_2DOF_PyBullet.__init__] _max_episode_steps:{self._max_episode_steps}')
@@ -288,7 +288,7 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
             -'randomize': whether to add or not random perturbation to the robot angles
                          and the traget position.     
             -'epsilon': to change the self.epsilon value.
-            -'numSubSteps': to change the self.numSubSteps velue.
+            -'numSubSteps': to change the numSubSteps value.
             
         Return: the observation (the environement state) and possibly a dictionary
                 of debug/info data.
@@ -316,18 +316,18 @@ class RoboticArm_2DOF_PyBullet(gym.Env):
             target_initial_pos = options.get("target_initial_pos", target_initial_pos)
             randomize = options.get("randomize", randomize)
             epsilon = options.get("epsilon", None) 
-            numSubSteps = options.get("numSubSteps", 50)
+            numSubSteps = options.get("numSubSteps", None)
                                                
         self.cur_step = 0
         self.prev_dist_effect_target = None
         
         if dt is not None : self.dt = dt
         if epsilon is not None: self.epsilon = epsilon
-        if numSubSteps is not None: self.numSubSteps = numSubSteps
+        #if numSubSteps is not None: self.numSubSteps = numSubSteps
                 
         # After a PyBullet reset, every parameter has to be set again:
         p.resetSimulation(physicsClientId=self.pc_id)
-        p.setPhysicsEngineParameter(numSubSteps=self.numSubSteps, physicsClientId=self.pc_id)
+        if numSubSteps != None: p.setPhysicsEngineParameter(numSubSteps=numSubSteps, physicsClientId=self.pc_id)
         p.setTimeStep(self.dt, physicsClientId=self.pc_id)
         p.setGravity(0, 0, -9.81, physicsClientId=self.pc_id)
         p.resetDebugVisualizerCamera(cameraDistance=2., cameraYaw=0, cameraPitch=0., 
