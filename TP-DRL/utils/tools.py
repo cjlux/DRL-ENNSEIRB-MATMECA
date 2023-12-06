@@ -1,7 +1,7 @@
 ###########################################################################
 # Copyright 2022 Jean-Luc CHARLES
 # Created: 2022-07-29
-# version: 1.1 - 7 Dec 2022 
+# version: 1.2 - 3 Dec 2023
 # License: GNU GPL-3.0-or-later
 ###########################################################################
 
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from math import pi
 import time
 import os
-from stat import ST_CTIME
+from stat import ST_MTIME
 
 def get_files_by_date(directory):
     '''
@@ -21,7 +21,7 @@ def get_files_by_date(directory):
     files = []
     for f in os.listdir(directory):
         file = os.path.join(directory, f)
-        if os.path.isfile(file): files.append((os.stat(file)[ST_CTIME], f))
+        if os.path.isfile(file): files.append((os.stat(file)[ST_MTIME], f))
     files.sort()
     return  [f for s,f in files]
 
@@ -42,9 +42,9 @@ def welcome():
     print("# Pybullet windows shortcuts:")
     print("#    G: close/open the tabs")
     print("#    W: switch between solid/wireframe rendering")
-    print("#    J: show/hide links & joints frames as RGB lines (with wireframe rendering actvated)")
-    print("#    K: show/hide joint axes as a black line         (with wireframe rendering actvated)")
-    print("#    A: show/hide collision boxes                    (with wireframe rendering actvated)")
+    print("#    J: show/hide links & joints frames as RGB lines (with wireframe rendering activated)")
+    print("#    K: show/hide joint axes as a black line         (with wireframe rendering activated)")
+    print("#    A: show/hide collision boxes                    (with wireframe rendering activated)")
     print("#    CTRL+left_clic  : rotate the robot")
     print("#    CRTL+midlle_clic: translate the robot")
     print("#    Mouse_wheel: zoom/unzoom")
@@ -60,25 +60,25 @@ def is_close_to(x, y, epsilon: float=1.e-3, verbose=0):
             print(f"||{np.array(x)}-{np.array(y)}|| gives {n:.4f}, to compare to {epsilon}")
     return  n <= epsilon
 
-def move_to(botId: int, 
-            joints: tuple, 
-            target: tuple, 
-            verbose: int = 0, 
-            wait="Press ENTER for next position"):
+def move_to(botId:int, 
+            joints:tuple, 
+            target:tuple, 
+            verbose:int=0, 
+            wait:str="Press ENTER for next position"):
     '''
-    Use the PyBullet simulator to move the robot arms: the target position is given  
-    by the two angles (q1,q2) [rad]
+    Use the PyBullet simulator to move the robot arms: the robot target position is given  
+    as two angles (q1,q2) [rad]
        
     Parameters:
-      botId: int:    the id of the robot
-      joints: tuple: the list of the joint indexes to control
-      target:tuple:  the list of the angle targets to reach
-      verbose: int:  optional, used to tune the function verbosity (0: no display)
-      wait: str:     optional; if not empty, the function will wait for a user input after moving the joints.
+      botId:int:    the id of the robot
+      joints:tuple: the list of the joint indexes to control
+      target:tuple: the list of the target angles to reach
+      verbose:int:  optional, used to tune the function verbosity (0: no display)
+      wait:str:     optional; if not empty, the function will wait for a user input after moving the joints.
        
     Return: None.
     '''
-    
+    # Display only 3 digits after decimal separator for numpy objects:
     np.set_printoptions(precision=3)
 
     angles = np.degrees(target)
@@ -91,7 +91,7 @@ def move_to(botId: int,
                                 targetPositions=target)
     
     # The following loop shows how the joints reach the target position under the physical engine computation.
-    # The loop breaks when the robot is very close to the target position:
+    # The loop breaks when the robot is close to the target position:
     step = 1
     while(True):
         p.stepSimulation()
@@ -113,9 +113,9 @@ def display_joint_properties(botId:int, jointIndex:int=None):
     Display the properties of all joints or a specific joint if jointIndex is not None.
     '''
     
-    labels=("jointIndex", "jointName", "jointType", "qIndex", "uIndex", "flags", 
-            "jointDamping", "jointFriction", "jointLowerLimit", 
-            "jointUpperLimit", "jointMaxForce", "jointMaxVelocity", "linkName", "jointAxis")
+    labels = ("jointIndex", "jointName", "jointType", "qIndex", "uIndex", "flags", 
+              "jointDamping", "jointFriction", "jointLowerLimit", 
+              "jointUpperLimit", "jointMaxForce", "jointMaxVelocity", "linkName", "jointAxis")
     labSelect = ("jointName", "qIndex", "uIndex", "jointDamping", "jointFriction", "jointLowerLimit", 
             "jointUpperLimit", "jointMaxForce", "jointMaxVelocity", "linkName", "jointAxis")
 
@@ -135,6 +135,8 @@ def display_link_properties(botId:int):
     '''
     Display the properties of all links.
     '''
+    # Display only 3 digits after decimal separator for numpy objects:
+    np.set_printoptions(precision=3)
     
     labels=("linkWorldPosition", "linkWorldOrientation", "localInertialFramePosition", 
             "localInertialFrameOrientation", "worldLinkFramePosition", "worldLinkFrameOrientation", 
@@ -144,11 +146,12 @@ def display_link_properties(botId:int):
     for i in range(4):
         print(f"Infos on link index <{i}>")
         state = infos = p.getLinkState(botId, i)
-        infoDict = { lab:prop for lab, prop in zip(labels, state)}
+        infoDict = {lab:prop for lab, prop in zip(labels, state)}
         for key in labSelect:
-            value = infoDict[key]
-            print(f"\t{key:30s}:{value}")
+            values = infoDict[key]
+            print(f"\t{key:21s}: ("+', '.join([f"{v:6.3f}" for v in values])+')')
         print()
+
 
 def test_training(agent, 
                   env, 
@@ -169,42 +172,42 @@ def test_training(agent,
 
     q1_q2 = (113, -140)
     
-    obs = env.reset(options={"dt": DT, 
-                             "target_initial_pos": (0.5,0,0),
-                             "robot_initial_angle_deg": q1_q2,
-                             "randomize": False,
-                             "epsilon": epsilon,
-                             "numSubSteps": nSubSteps})
+    obs, _ = env.reset(options={"dt": DT, 
+                                "target_initial_pos": (0.5,0,0),
+                                "robot_initial_angle_deg": q1_q2,
+                                "randomize": False,
+                                "epsilon": epsilon,
+                                "numSubSteps": nSubSteps})
 
-    target_pos = (1,0,0.5)
+    # First, position the end effector on the firts point:
+    target_pos = (1, 0, 0.5)   # JLC = pts[0]
     env.set_target_position(np.array(target_pos))
 
-    done, step_count, rewards, actions = False, 0, [], []
+    terminated, step_count, rewards, actions = False, 0, [], []
     while step_count < 5*max_steps_nb:
         action, _ = agent.predict(obs, deterministic=True)
-        obs, reward, done, info = env.step(action)
+        obs, reward, terminated, _, info = env.step(action)
         step_count += 1
-        if done: break
-    time.sleep(1)
+        if terminated: break
+    #time.sleep(0.1)
 
+    # Now, explore the trajectory by segments:
     error = []
     for target_pos in pts:
         env.set_target_position(target_pos)
-        done, step_count, rewards, actions = False, 0, [], []
+        terminated, step_count = False, 0
         while step_count < max_steps_nb:
-            if not done:
+            if not terminated:
                 action, _ = agent.predict(obs, deterministic=True)
-                obs, reward, done, info = env.step(action)
-                rewards.append(float(reward))
-                actions.append(action)
+                obs, reward, terminated, _, info = env.step(action)
                 dist_effect_target = norm(np.array(env.effector_pos) - target_pos)
                 error.append(dist_effect_target)
-            else:
-                time.sleep(env.dt)
+            #time.sleep(env.dt)
             step_count += 1
 
     error = np.array(error)
-    print(f"\ne_av: {100*error.mean():.2f} cm, e_std:{100*error.std():.2f} cm, abs(e)_max: {100*max(abs(error)):.2f} cm")
+    print(f"\ne_av: {100*error.mean():.2f} cm,"
+          f" e_std:{100*error.std():.2f} cm, abs(e)_max: {100*max(abs(error)):.2f} cm")
     
     return error
 
@@ -213,7 +216,8 @@ def sample_line(p1p2: tuple, nb_sampling_pts: int):
     To sample a line defined by 2 points into a sequence of small consecutive segments.
     parameters:
       p1p2: the tuple of the 2 points ((x1,y1), (x2,y2)). Each point is a tuple of coordinate (x,z).
-      nb_sampling_pts: the number of sampling points
+      nb_sampling_pts: the number of sampling points.
+      
     return:
       points: the ndarray of floats of shape (n_sample, 3). Each row is the 3 coords (x,y,z) of the
       intermediate points.
@@ -239,7 +243,8 @@ def sample_traj4pts(trajectory, nb_pts_per_line):
     To sample the points of the 4 lines that define a trajectory.
     parameters:
       trajectory: the tuple of the 4 pair of points that define the lines of the closed trajectory.
-      nb_sampling_pts_per_line: the number of sampling points per line of the trajectory
+      nb_sampling_pts_per_line: the number of sampling points per line of the trajectory.
+      
     return:
       pts: the ndarray of the coordinates (x,y,z) of the sampled points
       dl: the average of the segments length between two conscutive points.

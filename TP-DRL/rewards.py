@@ -29,3 +29,25 @@ def reward_1(self, action):
         r += 1.e-3/dist_effect_target
     reward = r        
     return reward
+
+
+if __name__ == "__main__":
+
+    import matplotlib.pyplot as plt
+
+    def reward_1_function(dist):
+        r = 0
+        if dist <= 1.e-3:
+            r += 1
+        else:
+            r += 1.e-3/dist
+        reward = r        
+        return reward
+
+    dist = np.linspace(0, 1, 1000)
+    rew = np.array([reward_1_function(d) for d in dist])
+
+    plt.figure(figsize=(10,8))
+    plt.plot(dist, rew)
+    plt.grid()
+    plt.show()
